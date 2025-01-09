@@ -1,13 +1,9 @@
 import django_tables2 as tables
+from django_tables2 import LinkColumn, RelatedLinkColumn
 
-from netbox_ddns.models import ExtraDNSName
-try:
-    # NetBox >= 3.2.0
-    from netbox.tables import BaseTable
-    from netbox.tables.columns import ToggleColumn, DateTimeColumn
-except ImportError:
-    # NetBox < 3.2.0
-    from utilities.tables import BaseTable, ToggleColumn, DateTimeColumn
+from netbox_ddns.models import ExtraDNSName, Server, ReverseZone, Zone
+
+from netbox.tables import NetBoxTable
 
 FORWARD_DNS = """
     {% if record.forward_action is not None %}
@@ -18,33 +14,38 @@ FORWARD_DNS = """
     {% endif %}
 """
 
-ACTIONS = """
-    {% if perms.netbox_ddns.change_extradnsname %}
-        <a href="{% url 'plugins:netbox_ddns:extradnsname_edit' ipaddress_pk=record.ip_address.pk pk=record.pk %}" 
-           class="btn btn-warning">
-            <i class="mdi mdi-pencil" aria-hidden="true"></i>
-        </a>
-    {% endif %}
-    {% if perms.netbox_ddns.delete_extradnsname %}
-        <a href="{% url 'plugins:netbox_ddns:extradnsname_delete' ipaddress_pk=record.ip_address.pk pk=record.pk %}"
-           class="btn btn-danger">
-            <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-        </a>
-    {% endif %}
-"""
+
+class ReverseZoneTable(NetBoxTable):
+    name = LinkColumn()
+    server = RelatedLinkColumn()
+
+    class Meta(NetBoxTable.Meta):
+        model = ReverseZone
+        fields = ("id", "name", "prefix", "server", "ttl")
 
 
-class PrefixTable(BaseTable):
-    pk = ToggleColumn()
-    name = tables.Column()
-    last_update = DateTimeColumn()
+class ZoneTable(NetBoxTable):
+    name = LinkColumn()
+    server = RelatedLinkColumn()
+
+    class Meta(NetBoxTable.Meta):
+        model = Zone
+        fields = ("id", "name", "server", "ttl")
+
+
+class ServerTable(NetBoxTable):
+    server = LinkColumn()
+
+    class Meta(NetBoxTable.Meta):
+        model = Server
+        fields = ("id", "server", "server_port", "tsig_key_name", "tsig_algorithm")
+
+
+class ExtraDNSNameTable(NetBoxTable):
+    ip_address = RelatedLinkColumn()
+    name = LinkColumn()
     forward_dns = tables.TemplateColumn(template_code=FORWARD_DNS)
-    actions = tables.TemplateColumn(
-        template_code=ACTIONS,
-        attrs={'td': {'class': 'text-right text-nowrap noprint'}},
-        verbose_name=''
-    )
 
-    class Meta(BaseTable.Meta):
+    class Meta(NetBoxTable.Meta):
         model = ExtraDNSName
-        fields = ('pk', 'name', 'last_update', 'forward_dns', 'actions')
+        fields = ('id', 'name', 'ip_address', 'last_update', 'forward_dns')

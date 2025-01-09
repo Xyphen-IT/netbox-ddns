@@ -8,3 +8,4 @@ class ExtraDNSNameViewSet(NetBoxModelViewSet):
     queryset = ExtraDNSName.objects.all()
     serializer_class = ExtraDNSNameSerializer
     filterset_class = ExtraDNSNameFilterSet
+

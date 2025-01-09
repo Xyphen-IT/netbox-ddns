@@ -1,134 +1,11 @@
-{% extends 'generic/_base.html' %}
-{% load buttons %}
-{% load custom_links %}
-{% load helpers %}
-{% load perms %}
-{% load plugins %}
-{% load tabs %}
-{% load i18n %}
-
-{% comment %}
-    Blocks:
-    - page-header:          Content displayed above the primary page content
-    - breadcrumbs:        Breadcrumb list items(HTML
-    <li> elements)
-    - object_identifier:  Unique identifier for the object
-    - title:                Page title
-    - subtitle:             Additional context displayed below the title
-    - controls:             Control elements displayed between the header and content
-    - control-buttons:    Action buttons (add/edit/delete/etc.)
-    - extra_controls:   Any additional action buttons to display
-    - tabs:                 Page tabs
-    - content:              Primary page content
-    - modals:               Any pre-loaded modals
-
-    Context:
-    - object: The object being viewed
-{% endcomment %}
-
-{% block page-header %}
-    <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center mt-2">
-
-            {# Object identifier #}
-            <code class="d-block text-muted bg-transparent px-0">
-                {% block object_identifier %}
-                    {{ object|meta:"app_label" }}.{{ object|meta:"model_name" }}:{{ object.pk }}
-                    {% if object.slug %}({{ object.slug }}){% endif %}
-                {% endblock object_identifier %}
-            </code>
-
-        </div>
-    </div>
-    {{ block.super }}
-{% endblock page-header %}
-
-{% block title %}{{ object }}{% endblock %}
-
-{% block subtitle %}
-    <div class="text-secondary fs-5">
-        {% trans "Created" %} {{ object.created|isodatetime:"minutes" }}
-        {% if object.last_updated %}
-            <span class="separator">&middot;</span>
-            {% trans "Updated" %} {{ object.last_updated|isodatetime:"minutes" }}
-        {% endif %}
-    </div>
-{% endblock subtitle %}
-
-{% block controls %}
-    <div class="btn-list justify-content-end mb-2">
-        {% plugin_buttons object %}
-
-        {# Add/edit/delete/etc. buttons #}
-        {% block control-buttons %}
-
-            {# Extra buttons #}
-            {% block extra_controls %}{% endblock %}
-
-            {# Default buttons #}
-            {% if perms.extras.add_bookmark and object.bookmarks %}
-                {% bookmark_button object %}
-            {% endif %}
-            {% if perms.extras.add_subscription and object.subscriptions %}
-                {% subscribe_button object %}
-            {% endif %}
-            {% if request.user|can_change:object %}
-                {% load i18n %}
-                <a href="{% url 'plugins:netbox_ddns:extradnsname_edit' ipaddress_pk=object.ip_address.pk pk=object.pk %}"
-                   class="btn btn-yellow" role="button">
-                    <i class="mdi mdi-pencil" aria-hidden="true"></i> {% trans "Edit" %}
-                </a>
-            {% endif %}
-            {% if request.user|can_delete:object %}
-                {% load i18n %}
-                <a href="#"
-                   hx-get="{% url 'plugins:netbox_ddns:extradnsname_delete' ipaddress_pk=object.ip_address.pk pk=object.pk %}"
-                   hx-target="#htmx-modal-content"
-                   hx-swap="innerHTML"
-                   hx-select="form"
-                   class="btn btn-red"
-                   data-bs-toggle="modal"
-                   data-bs-target="#htmx-modal"
-                >
-                    <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}
-                </a>
-
-            {% endif %}
-        {% endblock control-buttons %}
-    </div>
-
-    {# Custom links #}
-    <div class="d-flex justify-content-end">
-        <div class="btn-list">
-            {% block custom-links %}
-                {% custom_links object %}
-            {% endblock custom-links %}
-        </div>
-    </div>
-{% endblock controls %}
-
-{% block tabs %}
-    <ul class="nav nav-tabs" role="presentation">
-        {# Primary tab #}
-        <li class="nav-item">
-            <a class="nav-link{% if not tab %} active{% endif %}" href="{{ object.get_absolute_url }}">
-                {{ object|meta:"verbose_name"|bettertitle }}</a>
-        </li>
-
-        {# Include tabs for registered model views #}
-        {% model_view_tabs object %}
-    </ul>
-{% endblock tabs %}
-
-{% block alerts %}
-    {% plugin_alerts object %}
-{% endblock alerts %}
+{% extends 'generic/object.html' %}
+{% load render_table from django_tables2 %}
 
 {% block content %}
     <div class="row mb-3">
         <div class="col col-md-6">
             <div class="card">
-                <h5 class="card-header">Access List</h5>
+                <h5 class="card-header">Extra DNS name</h5>
                 <div class="card-body">
                     <table class="table table-hover attr-table">
                         <tr>
@@ -158,12 +35,27 @@
                     </table>
                 </div>
             </div>
+            <div class="card">
+                <h5 class="card-header">Managed by</h5>
+                <div class="card-body">
+                    <table class="table table-hover attr-table">
+                        <tr>
+                            <th scope="row">DDNS Server</th>
+                            <td>
+                                <a href="{{ server.get_absolute_url }}">{{ server }}</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Zone</th>
+                            <td>
+                                <a href="{{ zone.get_absolute_url }}">{{ zone }}</a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
             {% include 'inc/panels/custom_fields.html' %}
         </div>
         <div class="col col-md-6">{% include 'inc/panels/tags.html' %}</div>
     </div>
 {% endblock content %}
-
-{% block modals %}
-    {% include 'inc/htmx_modal.html' %}
-{% endblock modals %}

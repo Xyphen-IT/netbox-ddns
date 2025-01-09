@@ -10,7 +10,7 @@
 
         {% if perms.netbox_ddns.add_extradnsname %}
             <div class="card-footer text-right noprint">
-                <a href="{% url 'plugins:netbox_ddns:extradnsname_create' ipaddress_pk=object.pk %}"
+                <a href="{% url 'plugins:netbox_ddns:extradnsname_ip_address_create' ipaddress_pk=object.pk %}"
                    class="btn btn-primary">
                     <span class="mdi mdi-plus" aria-hidden="true"></span>Add extra DNS name
                 </a>

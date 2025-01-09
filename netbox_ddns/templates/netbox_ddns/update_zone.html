@@ -1,0 +1,11 @@
+{% if perms.ipam.change_ipaddress %}
+    <form method="post" class="inline-block">
+        {% csrf_token %}
+
+        <button type="submit" name="_edit"
+                formaction="{% url 'plugins:netbox_ddns:zone_recreate_record' pk=object.pk %}"
+                class="btn btn-secondary">
+            <span class="mdi mdi-refresh" aria-hidden="true"></span> Recreate all Records
+        </button>
+    </form>
+{% endif %}

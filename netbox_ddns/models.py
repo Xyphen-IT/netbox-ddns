@@ -4,6 +4,7 @@ import logging
 import socket
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Length
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -15,8 +16,10 @@ from typing import Optional
 from netbox.models import NetBoxModel
 from ipam.fields import IPNetworkField
 from ipam.models import IPAddress
+from utilities.querysets import RestrictedQuerySet
 from .utils import normalize_fqdn
-from .validators import HostnameAddressValidator, HostnameValidator, validate_base64, MinValueValidator, MaxValueValidator
+from .validators import HostnameAddressValidator, HostnameValidator, validate_base64, MinValueValidator, \
+    MaxValueValidator
 
 logger = logging.getLogger('netbox_ddns')
 
@@ -62,7 +65,7 @@ def get_rcode_display(code):
         return _('Unknown response: {}').format(code)
 
 
-class Server(models.Model):
+class Server(NetBoxModel):
     server = models.CharField(
         verbose_name=_('DDNS Server'),
         max_length=255,
@@ -111,12 +114,12 @@ class Server(models.Model):
         # Ensure trailing dots from domain-style fields
         self.tsig_key_name = normalize_fqdn(self.tsig_key_name.lower().rstrip('.'))
 
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_ddns:server', args=[self.pk])
+
     @property
     def address(self) -> Optional[str]:
-        addrinfo = socket.getaddrinfo(self.server, self.server_port, proto=socket.IPPROTO_UDP)
-        for family, _, _, _, sockaddr in addrinfo:
-            if family in (socket.AF_INET, socket.AF_INET6) and sockaddr[0]:
-                return sockaddr[0]
+        return socket.gethostbyname(self.server)
 
     def create_update(self, zone: str) -> dns.update.Update:
         return dns.update.Update(
@@ -129,7 +132,7 @@ class Server(models.Model):
         )
 
 
-class ZoneQuerySet(models.QuerySet):
+class ZoneQuerySet(RestrictedQuerySet):
     def find_for_dns_name(self, dns_name: str) -> Optional['Zone']:
         # Generate all possible zones
         zones = []
@@ -141,7 +144,7 @@ class ZoneQuerySet(models.QuerySet):
         return self.filter(name__in=zones).order_by(Length('name').desc()).first()
 
 
-class Zone(models.Model):
+class Zone(NetBoxModel):
     name = models.CharField(
         verbose_name=_('zone name'),
         max_length=255,
@@ -167,6 +170,28 @@ class Zone(models.Model):
     def __str__(self):
         return self.name
 
+    def get_managed_ip_address(self):
+        # Find all more-specific zones
+        more_specifics = Zone.objects.filter(name__endswith=self.name).exclude(pk=self.pk)
+
+        # Find all IPAddress objects in this self but not in the more-specifics
+        ip_addresses = IPAddress.objects.filter(Q(dns_name__endswith=self.name) |
+                                                Q(dns_name__endswith=self.name.rstrip('.')))
+        for more_specific in more_specifics:
+            ip_addresses = ip_addresses.exclude(Q(dns_name__endswith=more_specific.name) |
+                                                Q(dns_name__endswith=more_specific.name.rstrip('.')))
+        return ip_addresses
+
+    def get_managed_extra_dns_name(self):
+        # Find all more-specific zones
+        more_specifics = Zone.objects.filter(name__endswith=self.name).exclude(pk=self.pk)
+
+        # Find all ExtraDNSName objects in this zone but not in the more-specifics
+        extra_names = ExtraDNSName.objects.filter(name__endswith=self.name)
+        for more_specific in more_specifics:
+            extra_names = extra_names.exclude(name__endswith=more_specific.name)
+        return extra_names
+
     def clean(self):
         # Ensure trailing dots from domain-style fields
         self.name = normalize_fqdn(self.name)
@@ -174,8 +199,11 @@ class Zone(models.Model):
     def get_updater(self):
         return self.server.create_update(self.name)
 
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_ddns:zone', args=[self.pk])
 
-class ReverseZoneQuerySet(models.QuerySet):
+
+class ReverseZoneQuerySet(RestrictedQuerySet):
     def find_for_address(self, address: ip.IPAddress) -> Optional['ReverseZone']:
         # Find the zone, if any
         zones = list(ReverseZone.objects.filter(prefix__net_contains=address))
@@ -186,7 +214,7 @@ class ReverseZoneQuerySet(models.QuerySet):
         return zones[-1]
 
 
-class ReverseZone(models.Model):
+class ReverseZone(NetBoxModel):
     prefix = IPNetworkField(
         verbose_name=_('prefix'),
         unique=True,
@@ -214,7 +242,19 @@ class ReverseZone(models.Model):
         verbose_name_plural = _('reverse zones')
 
     def __str__(self):
-        return f'for {self.prefix}'
+        return f'{self.prefix}'
+
+    def get_managed_ip_address(self):
+        # Find all more-specific zones
+        more_specifics = ReverseZone.objects.filter(prefix__net_contained=self.prefix).exclude(pk=self.pk)
+        # Find all IPAddress objects in this zone but not in the more-specifics
+        ip_addresses = IPAddress.objects.filter(address__net_contained_or_equal=self.prefix)
+        for more_specific in more_specifics:
+            ip_addresses = ip_addresses.exclude(address__net_contained_or_equal=more_specific.prefix)
+        return ip_addresses
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_ddns:reversezone', args=[self.pk])
 
     def record_name(self, address: ip.IPAddress):
         record_name = self.name
@@ -367,7 +407,7 @@ class ExtraDNSName(NetBoxModel):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('plugins:netbox_ddns:extradnsname', args=[self.ip_address.pk, self.pk])
+        return reverse('plugins:netbox_ddns:extradnsname', args=[self.pk])
 
     def clean(self):
         # Ensure trailing dots from domain-style fields
