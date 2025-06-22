@@ -7,10 +7,10 @@ import dns.resolver
 from django.db import IntegrityError
 from django_rq import job
 from dns import rcode
-from netaddr import ip
+from netaddr import ip, IPNetwork
 
 from netbox_ddns.models import ACTION_CREATE, ACTION_DELETE, DNSStatus, RCODE_NO_ZONE, ReverseZone, Zone
-from netbox_ddns.utils import get_soa
+from netbox_ddns.utils import get_soa, check_servers_authoritative, get_ip
 
 logger = logging.getLogger('netbox_ddns')
 
@@ -198,3 +198,36 @@ def dns_delete(dns_name: str, address: ip.IPAddress, forward=True, reverse=True,
             status.save(force_update=True)
 
     return ', '.join(output)
+
+
+# TODO: dns_create,dns_remove check if it is not delegated to another server
+def create_reverse_delegation(nameservers: List[str], prefix: IPNetwork, status: Optional[DNSStatus], output: List[str]):
+    if prefix.size > 24:
+        output.append(f'Classless delegation is not implemented, prefix size too big: {prefix.cidr}')
+
+    if status:
+        status.reverse_action = ACTION_CREATE
+
+    nameservers = {x: get_ip(x) for x in nameservers}
+
+    subnets = prefix.subnet(24)
+    while 1:
+        subnet = next(subnets, None)
+        if subnet is None:
+            break
+
+        zone = ReverseZone.objects.find_for_address(subnet.network)
+        if zone:
+            for nameserver, addresses in nameservers.items():
+                # TODO: check authority
+                nameserver = {nameserver: address}
+                if check_servers_authoritative(zone.name, addresses):
+                    pass
+            update = zone.server.create_update(zone.name)
+            for nameserver in nameservers.keys():
+                update.add(
+                    zone.name,
+                    zone.ttl,
+                    dns.rdatatype.NS,
+                    nameserver
+                )
