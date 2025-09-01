@@ -18,7 +18,7 @@ from ipam.fields import IPNetworkField
 from ipam.models import IPAddress
 from utilities.querysets import RestrictedQuerySet
 from .utils import normalize_fqdn
-from .validators import HostnameAddressValidator, HostnameValidator, validate_base64, MinValueValidator, \
+from .validators import DNSNameValidator, HostnameAddressValidator, HostnameValidator, validate_base64, MinValueValidator, \
     MaxValueValidator
 
 logger = logging.getLogger('netbox_ddns')
@@ -374,7 +374,7 @@ class ExtraDNSName(NetBoxModel):
     name = models.CharField(
         verbose_name=_('DNS name'),
         max_length=255,
-        validators=[HostnameValidator()],
+        validators=[DNSNameValidator()],
     )
 
     last_update = models.DateTimeField(
