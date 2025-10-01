@@ -26,7 +26,7 @@ class ServerSerializer(NetBoxModelSerializer):
 class ZoneSerializer(NetBoxModelSerializer):
     class Meta:
         model = Zone
-        fields = ('name', 'ttl', 'server')
+        fields = ('name', 'ttl', 'server', 'protocol')
 
 
 class ReverseZoneSerializer(NetBoxModelSerializer):

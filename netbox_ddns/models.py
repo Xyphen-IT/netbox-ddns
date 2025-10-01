@@ -64,6 +64,9 @@ def get_rcode_display(code):
     else:
         return _('Unknown response: {}').format(code)
 
+class Protocol(models.TextChoices):
+    UDP = 'udp', _('UDP')
+    TCP = 'tcp', _('TCP')
 
 class Server(NetBoxModel):
     server = models.CharField(
@@ -94,6 +97,12 @@ class Server(NetBoxModel):
         max_length=512,
         validators=[validate_base64],
         help_text=_('in base64 notation'),
+    )
+    protocol = models.CharField(
+        verbose_name=_('Protocol'),
+        max_length=3,
+        choices=Protocol.choices,
+        default=Protocol.UDP,
     )
 
     class Meta:
