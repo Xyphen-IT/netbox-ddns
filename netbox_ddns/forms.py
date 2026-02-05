@@ -34,13 +34,13 @@ class ZoneBulkEditForm(NetBoxModelBulkEditForm):
 
 class ServerForm(NetBoxModelForm):
     fieldsets = (
-        FieldSet('server', 'server_port', name='Server'),
+        FieldSet('server', 'server_port', 'protocol', name='Server'),
         FieldSet('tsig_key_name', 'tsig_algorithm', "tsig_key", name='Authentication'),
     )
 
     class Meta:
         model = Server
-        fields = ('server', 'server_port', 'tsig_key_name', 'tsig_algorithm', "tsig_key")
+        fields = ('server', 'server_port', 'protocol', 'tsig_key_name', 'tsig_algorithm', "tsig_key")
 
 
 class ExtraDNSNameIPAddressForm(NetBoxModelForm):

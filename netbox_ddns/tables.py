@@ -38,7 +38,7 @@ class ServerTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = Server
-        fields = ("id", "server", "server_port", "tsig_key_name", "tsig_algorithm")
+        fields = ("id", "server", "server_port", "protocol", "tsig_key_name", "tsig_algorithm")
 
 
 class ExtraDNSNameTable(NetBoxTable):
