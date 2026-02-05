@@ -119,7 +119,10 @@ class Server(NetBoxModel):
 
     @property
     def address(self) -> Optional[str]:
-        return socket.gethostbyname(self.server)
+        addrinfo = socket.getaddrinfo(self.server, self.server_port, proto=socket.IPPROTO_UDP)
+        for family, _, _, _, sockaddr in addrinfo:
+            if family in (socket.AF_INET, socket.AF_INET6) and sockaddr[0]:
+                return sockaddr[0]
 
     def create_update(self, zone: str) -> dns.update.Update:
         return dns.update.Update(
