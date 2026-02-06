@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
 from ipam.models import IPAddress
@@ -9,14 +9,36 @@ from netbox_ddns.background_tasks import dns_create
 from netbox_ddns.filtersets import ServerFilterSet, ZoneFilterSet, ReverseZoneFilterSet, ExtraDNSNameFilterSet
 from netbox_ddns.forms import ServerForm, ZoneForm, ReverseZoneForm, ExtraDNSNameIPAddressForm, ExtraDNSNameForm
 from netbox_ddns.models import DNSStatus, ExtraDNSName, Server, Zone, ReverseZone
-from netbox_ddns.tables import ServerTable, ZoneTable, ReverseZoneTable, ExtraDNSNameTable
-from netbox_ddns.utils import normalize_fqdn
+from netbox_ddns.tables import ManagedDNSNameTable, ServerTable, ZoneTable, ReverseZoneTable, ExtraDNSNameTable
+from netbox_ddns.utils import get_managed_dns_names, normalize_fqdn
 
 from netbox.views.generic import ObjectDeleteView, ObjectEditView, ObjectView, ObjectListView, BulkDeleteView
 
 from django.views.generic import View
 
 from utilities.views import register_model_view, GetRelatedModelsMixin
+
+
+# Managed DNS Names (unified list of primary + extra names in zones)
+class ManagedDNSNameListView(PermissionRequiredMixin, View):
+    """Unified list of all DNS names managed by DDNS (primary from IPAddress + extra from ExtraDNSName)."""
+    permission_required = 'netbox_ddns.view_zone'
+
+    def get(self, request):
+        rows = get_managed_dns_names(request.user)
+        table = ManagedDNSNameTable(rows)
+        if hasattr(table, 'configure'):
+            table.configure(request)
+
+        return render(
+            request,
+            'netbox_ddns/managed_dns_names.html',
+            {
+                'table': table,
+                'object_type': 'managed DNS name',
+                'object_type_plural': 'managed DNS names',
+            },
+        )
 
 
 # ReverseZone

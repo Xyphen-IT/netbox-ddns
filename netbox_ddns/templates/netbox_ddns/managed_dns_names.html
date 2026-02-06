@@ -1,0 +1,14 @@
+{% extends 'generic/object_list.html' %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+    <div class="row">
+        <div class="col col-12">
+            <div class="card">
+                <div class="card-body table-responsive">
+                    {% render_table table %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

@@ -5,6 +5,10 @@ menu = PluginMenu(
     groups=(
         ('Configuration', (
             PluginMenuItem(
+                link='plugins:netbox_ddns:managed_dns_name_list',
+                link_text='Managed DNS Names',
+            ),
+            PluginMenuItem(
                 link='plugins:netbox_ddns:server_list',
                 link_text='DDNS Servers',
                 buttons=[

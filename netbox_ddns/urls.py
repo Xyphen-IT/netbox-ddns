@@ -1,10 +1,16 @@
 from django.urls import path, include
 
 from utilities.urls import get_model_urls
-from .views import ExtraDNSNameCreateView, IPAddressDNSNameRecreateView, \
-     UpdateForwardZone, UpdateReverseZone
+from .views import (
+    ExtraDNSNameCreateView,
+    IPAddressDNSNameRecreateView,
+    ManagedDNSNameListView,
+    UpdateForwardZone,
+    UpdateReverseZone,
+)
 
 urlpatterns = [
+    path('managed-dns-names/', ManagedDNSNameListView.as_view(), name='managed_dns_name_list'),
 
     path('extra-dns-names/', include(get_model_urls('netbox_ddns', 'extradnsname', detail=False))),
     path('extra-dns-names/<int:pk>/', include(get_model_urls('netbox_ddns', 'extradnsname'))),
