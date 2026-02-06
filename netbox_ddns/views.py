@@ -20,9 +20,9 @@ from django.views.generic import View
 from utilities.views import register_model_view, GetRelatedModelsMixin
 
 
-# Managed DNS Names (unified list of primary + extra names in zones)
+# Managed DNS Names (primary DNS names from IP addresses)
 class ManagedDNSNameListView(PermissionRequiredMixin, View):
-    """Unified list of all DNS names managed by DDNS (primary from IPAddress + extra from ExtraDNSName)."""
+    """List of all primary DNS names (from IPAddress.dns_name). Extra DNS names have a separate view."""
     permission_required = 'netbox_ddns.view_zone'
 
     def get(self, request):

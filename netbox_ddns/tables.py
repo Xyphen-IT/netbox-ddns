@@ -66,7 +66,7 @@ class ExtraDNSNameTable(NetBoxTable):
 
 
 class ManagedDNSNameTable(tables.Table):
-    """Table for the unified Managed DNS Names list view (primary + extra)."""
+    """Table for primary DNS names (from IPAddress.dns_name)."""
     dns_name = tables.Column(
         accessor='dns_name',
         linkify=lambda record: record.view_url,
@@ -77,12 +77,7 @@ class ManagedDNSNameTable(tables.Table):
     )
     zone = tables.Column(
         accessor='zone',
-        linkify=lambda record: record.zone.get_absolute_url(),
-    )
-    record_type = tables.Column(
-        accessor='is_primary',
-        verbose_name='Type',
-        default='',
+        linkify=lambda record: record.zone.get_absolute_url() if record.zone else None,
     )
     forward_status = tables.TemplateColumn(
         template_code='{{ record.forward_status_html|safe }}',
@@ -94,8 +89,8 @@ class ManagedDNSNameTable(tables.Table):
         orderable=False,
     )
 
-    def render_record_type(self, value):
-        return 'Primary' if value else 'Extra'
+    def render_zone(self, value):
+        return value if value else '—'
 
     class Meta:
         attrs = {'class': 'table table-hover object-list'}

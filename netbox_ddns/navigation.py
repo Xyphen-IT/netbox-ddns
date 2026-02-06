@@ -6,7 +6,7 @@ menu = PluginMenu(
         ('Configuration', (
             PluginMenuItem(
                 link='plugins:netbox_ddns:managed_dns_name_list',
-                link_text='Managed DNS Names',
+                link_text='DNS Names',
             ),
             PluginMenuItem(
                 link='plugins:netbox_ddns:server_list',
