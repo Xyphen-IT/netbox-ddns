@@ -222,7 +222,7 @@ def create_rfc2317_delegation(reverse_zone_pk: int) -> str:
 
     target_address = reverse_zone.server.address
     if not target_address:
-        return (
+        raise ValueError(
             f'Cannot delegate: could not resolve target nameserver {reverse_zone.server.server}'
         )
     if not nameserver_has_zone(
@@ -230,9 +230,9 @@ def create_rfc2317_delegation(reverse_zone_pk: int) -> str:
         target_address,
         reverse_zone.server.server_port,
     ):
-        return (
+        raise ValueError(
             f'Cannot delegate: target nameserver {reverse_zone.server.server} '
-            f'does not have zone {reverse_zone.name}'
+            f'does not have zone {reverse_zone.name} (NXDOMAIN)'
         )
 
     output = []
@@ -246,9 +246,35 @@ def create_rfc2317_delegation(reverse_zone_pk: int) -> str:
 
     response = send_dns_update(update, parent.server, protocol)
     if response is None:
-        return 'Failed to send RFC 2317 delegation update'
+        raise ValueError('Failed to send RFC 2317 delegation update')
     status_update(output, f'RFC 2317 delegation ({len(records)} CNAMEs)', response)
     return ', '.join(output)
+
+
+def delete_rfc2317_delegation(reverse_zone) -> bool:
+    """
+    Remove RFC 2317 CNAME records from the parent zone.
+    Returns True if cleanup was attempted (and succeeded or had nothing to do), False on failure.
+    """
+    from netbox_ddns.utils import normalize_fqdn
+
+    records = reverse_zone.get_rfc2317_delegation_cnames()
+    if not records:
+        return True
+
+    parent = reverse_zone.get_parent()
+    if not parent or not parent.server.address:
+        return True
+
+    protocol = parent.server.protocol
+    update = parent.server.create_update(parent.name)
+
+    for name_in_parent, _target in records:
+        name_fqdn = normalize_fqdn(name_in_parent)
+        update.delete(name_fqdn, 'CNAME')
+
+    response = send_dns_update(update, parent.server, protocol)
+    return response is not None and response.rcode() == dns.rcode.NOERROR
 
 
 @job

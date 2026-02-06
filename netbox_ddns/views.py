@@ -10,7 +10,7 @@ from netbox_ddns.filtersets import ServerFilterSet, ZoneFilterSet, ReverseZoneFi
 from netbox_ddns.forms import ServerForm, ZoneForm, ReverseZoneForm, ExtraDNSNameIPAddressForm, ExtraDNSNameForm
 from netbox_ddns.models import DNSStatus, ExtraDNSName, Server, Zone, ReverseZone
 from netbox_ddns.tables import ManagedDNSNameTable, ServerTable, ZoneTable, ReverseZoneTable, ExtraDNSNameTable
-from netbox_ddns.utils import get_managed_dns_names, normalize_fqdn
+from netbox_ddns.utils import get_managed_dns_names, get_reverse_zone_status, normalize_fqdn
 
 from netbox.views.generic import ObjectDeleteView, ObjectEditView, ObjectView, ObjectListView, BulkDeleteView
 
@@ -47,6 +47,7 @@ class ReverseZoneView(ObjectView):
         ip_address_table.configure(request)
         return {
             'ip_address_table': ip_address_table,
+            'reverse_zone_status': get_reverse_zone_status(instance),
         }
 
 

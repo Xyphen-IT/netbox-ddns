@@ -35,6 +35,47 @@
                     </tr>
                 </table>
             </div>
+            {% if reverse_zone_status %}
+            <div class="card">
+                <h5 class="card-header">Delegation Status</h5>
+                <div class="card-body">
+                    <table class="table table-hover attr-table mb-0">
+                        <tr>
+                            <th scope="row">Zone Verified</th>
+                            <td>
+                                {% if reverse_zone_status.zone_verified %}
+                                    <span class="badge bg-success">Verified</span>
+                                    <span class="text-muted">Zone exists on nameserver</span>
+                                {% elif reverse_zone_status.zone_verified is False %}
+                                    <span class="badge bg-danger">Not found</span>
+                                    {% if reverse_zone_status.zone_verified_error %}
+                                        <span class="text-danger">{{ reverse_zone_status.zone_verified_error }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">RFC 2317 Delegation</th>
+                            <td>
+                                {% if reverse_zone_status.rfc2317_delegation_status == 'Delegated' %}
+                                    <span class="badge bg-success">Delegated</span>
+                                    <span class="text-muted">CNAME records in parent zone</span>
+                                {% elif reverse_zone_status.rfc2317_delegation_status == 'Not delegated' %}
+                                    <span class="badge bg-warning">Not delegated</span>
+                                    <span class="text-muted">CNAME records missing in parent</span>
+                                {% elif reverse_zone_status.rfc2317_delegation_status %}
+                                    <span class="text-muted">{{ reverse_zone_status.rfc2317_delegation_status }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
             <div class="card">
                 <div class="justify-content-between card-header">
                     <h1 class="card-title">IP Addresses</h1>

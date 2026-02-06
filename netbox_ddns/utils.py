@@ -104,6 +104,24 @@ def normalize_fqdn(dns_name: str) -> str:
     return dns_name.lower().rstrip('.') + '.'
 
 
+def nameserver_has_record(
+    record_name: str, rdtype: str, nameserver: str, port: int = 53
+) -> bool:
+    """
+    Check if the given nameserver returns a record for the given name.
+    Returns True if query succeeds and returns at least one record.
+    """
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.nameservers = [nameserver]
+        resolver.port = port
+        fqdn = normalize_fqdn(record_name)
+        answer = resolver.resolve(fqdn, rdtype)
+        return bool(answer)
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, OSError):
+        return False
+
+
 def nameserver_has_zone(zone_name: str, nameserver: str, port: int = 53) -> bool:
     """
     Check if the given nameserver is authoritative for the zone.
@@ -118,6 +136,51 @@ def nameserver_has_zone(zone_name: str, nameserver: str, port: int = 53) -> bool
         return bool(answer)
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, OSError):
         return False
+
+
+def get_reverse_zone_status(reverse_zone) -> dict:
+    """
+    Return delegation/verification status for a ReverseZone.
+    Returns dict with: zone_verified, zone_verified_error, rfc2317_delegation_status.
+    """
+    status = {
+        'zone_verified': None,
+        'zone_verified_error': None,
+        'rfc2317_delegation_status': None,
+    }
+    address = reverse_zone.server.address
+    if not address:
+        status['zone_verified'] = False
+        status['zone_verified_error'] = 'Could not resolve nameserver'
+        return status
+
+    status['zone_verified'] = nameserver_has_zone(
+        reverse_zone.name, address, reverse_zone.server.server_port
+    )
+    if not status['zone_verified']:
+        status['zone_verified_error'] = 'Zone not found on nameserver (NXDOMAIN)'
+
+    records = reverse_zone.get_rfc2317_delegation_cnames()
+    if not records:
+        status['rfc2317_delegation_status'] = 'N/A'
+        return status
+
+    parent = reverse_zone.get_parent()
+    if not parent:
+        status['rfc2317_delegation_status'] = 'No parent zone'
+        return status
+
+    parent_address = parent.server.address
+    if not parent_address:
+        status['rfc2317_delegation_status'] = 'Could not resolve parent nameserver'
+        return status
+
+    name_in_parent, _ = records[0]
+    has_cname = nameserver_has_record(
+        name_in_parent, 'CNAME', parent_address, parent.server.server_port
+    )
+    status['rfc2317_delegation_status'] = 'Delegated' if has_cname else 'Not delegated'
+    return status
 
 
 def get_soa(dns_name: str) -> str:

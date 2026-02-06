@@ -1,11 +1,11 @@
 import logging
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from netaddr import IPNetwork
 
 from ipam.models import IPAddress
-from netbox_ddns.background_tasks import dns_create, dns_delete
-from netbox_ddns.models import DNSStatus, ExtraDNSName
+from netbox_ddns.background_tasks import delete_rfc2317_delegation, dns_create, dns_delete
+from netbox_ddns.models import DNSStatus, ExtraDNSName, ReverseZone
 from netbox_ddns.utils import normalize_fqdn
 
 logger = logging.getLogger('netbox_ddns')
@@ -113,6 +113,17 @@ def trigger_extra_ddns_update(instance: ExtraDNSName, **_kwargs):
             status=instance,
             reverse=False,
             depends_on=delete,
+        )
+
+
+@receiver(pre_delete, sender=ReverseZone)
+def cleanup_rfc2317_delegation(instance: ReverseZone, **_kwargs):
+    """Remove RFC 2317 CNAME records from parent zone when ReverseZone is deleted."""
+    success = delete_rfc2317_delegation(instance)
+    if not success:
+        raise RuntimeError(
+            f'Cannot delete reverse zone {instance}: failed to remove RFC 2317 '
+            f'delegation from parent zone. Fix or remove the parent zone records manually.'
         )
 
 
