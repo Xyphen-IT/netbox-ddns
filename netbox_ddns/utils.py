@@ -104,6 +104,22 @@ def normalize_fqdn(dns_name: str) -> str:
     return dns_name.lower().rstrip('.') + '.'
 
 
+def nameserver_has_zone(zone_name: str, nameserver: str, port: int = 53) -> bool:
+    """
+    Check if the given nameserver is authoritative for the zone.
+    Returns True if SOA query at the nameserver returns the zone.
+    """
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.nameservers = [nameserver]
+        resolver.port = port
+        zone_fqdn = normalize_fqdn(zone_name)
+        answer = resolver.resolve(zone_fqdn, dns.rdatatype.SOA)
+        return bool(answer)
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, OSError):
+        return False
+
+
 def get_soa(dns_name: str) -> str:
     parts = dns_name.rstrip('.').split('.')
     for i in range(len(parts)):

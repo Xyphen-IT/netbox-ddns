@@ -205,6 +205,53 @@ def dns_create(dns_name: str, address: ip.IPAddress, forward=True, reverse=True,
 
 
 @job
+def create_rfc2317_delegation(reverse_zone_pk: int) -> str:
+    """
+    Create RFC 2317 CNAME records in the parent zone to delegate to the given child ReverseZone.
+    Validates that the target nameserver (child zone's server) has the zone before delegating.
+    """
+    from netbox_ddns.models import Protocol, ReverseZone
+    from netbox_ddns.utils import nameserver_has_zone, normalize_fqdn
+
+    reverse_zone = ReverseZone.objects.get(pk=reverse_zone_pk)
+    records = reverse_zone.get_rfc2317_delegation_cnames()
+    if not records:
+        return 'No RFC 2317 delegation needed (no parent, IPv6, or prefix on octet boundary)'
+
+    parent = reverse_zone.get_parent()
+
+    target_address = reverse_zone.server.address
+    if not target_address:
+        return (
+            f'Cannot delegate: could not resolve target nameserver {reverse_zone.server.server}'
+        )
+    if not nameserver_has_zone(
+        reverse_zone.name,
+        target_address,
+        reverse_zone.server.server_port,
+    ):
+        return (
+            f'Cannot delegate: target nameserver {reverse_zone.server.server} '
+            f'does not have zone {reverse_zone.name}'
+        )
+
+    output = []
+    protocol = parent.server.protocol
+    update = parent.server.create_update(parent.name)
+
+    for name_in_parent, target in records:
+        name_fqdn = normalize_fqdn(name_in_parent)
+        target_fqdn = normalize_fqdn(target)
+        update.add(name_fqdn, reverse_zone.ttl, 'CNAME', target_fqdn)
+
+    response = send_dns_update(update, parent.server, protocol)
+    if response is None:
+        return 'Failed to send RFC 2317 delegation update'
+    status_update(output, f'RFC 2317 delegation ({len(records)} CNAMEs)', response)
+    return ', '.join(output)
+
+
+@job
 def dns_delete(dns_name: str, address: ip.IPAddress, forward=True, reverse=True, status: DNSStatus = None):
     output = []
 
