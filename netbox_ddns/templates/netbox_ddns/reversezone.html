@@ -61,12 +61,12 @@
                             <td>
                                 {% if reverse_zone_status.rfc2317_delegation_status == 'Delegated' %}
                                     <span class="badge bg-success">Delegated</span>
-                                    <span class="text-muted">CNAME records in parent zone</span>
+                                    <span class="text-white">CNAME records in parent zone</span>
                                 {% elif reverse_zone_status.rfc2317_delegation_status == 'Not delegated' %}
                                     <span class="badge bg-warning">Not delegated</span>
-                                    <span class="text-muted">CNAME records missing in parent</span>
+                                    <span class="text-white">CNAME records missing in parent</span>
                                 {% elif reverse_zone_status.rfc2317_delegation_status %}
-                                    <span class="text-muted">{{ reverse_zone_status.rfc2317_delegation_status }}</span>
+                                    <span class="text-white">{{ reverse_zone_status.rfc2317_delegation_status }}</span>
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
