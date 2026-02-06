@@ -12,7 +12,7 @@ class NetBoxDDNSConfig(PluginConfig):
     name = 'netbox_ddns'
     verbose_name = 'Dynamic DNS'
     version = VERSION
-    min_version = '4.0.0'
+    min_version = '4.4.0'
     max_version = '4.5.999'
     author = 'Sander Steffann'
     author_email = 'sander@steffann.nl'
