@@ -1,0 +1,17 @@
+{% extends 'base/layout.html' %}
+{% load render_table from django_tables2 %}
+
+{% block title %}DNS Names{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col col-12">
+            <div class="card">
+                <h5 class="card-header">DNS Names</h5>
+                <div class="card-body table-responsive">
+                    {% render_table table 'inc/table.html' %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

@@ -28,6 +28,17 @@ def status_update(output: List[str], operation: str, response) -> None:
     output.append(message)
 
 
+def send_dns_update(update, server, protocol):
+    """Send DNS update via TCP or UDP. Returns response or None on unknown protocol."""
+    if protocol == Protocol.TCP:
+        return dns.query.tcp(update, server.address, port=server.server_port)
+    elif protocol == Protocol.UDP:
+        return dns.query.udp(update, server.address, port=server.server_port)
+    else:
+        logger.error(f"Unknown protocol {protocol} for server {server}")
+        return None
+
+
 def create_forward(dns_name: str, address: ip.IPAddress, status: Optional[DNSStatus], output: List[str]):
     if status:
         status.forward_action = ACTION_CREATE
@@ -48,12 +59,8 @@ def create_forward(dns_name: str, address: ip.IPAddress, status: Optional[DNSSta
                 record_type,
                 str(address)
             )
-            if protocol == Protocol.TCP:
-                response = dns.query.tcp(update, zone.server.address, port=zone.server.server_port)
-            elif protocol == Protocol.UDP:
-                response = dns.query.udp(update, zone.server.address, port=zone.server.server_port)
-            else:
-                logger.error(f"Unknown protocol {protocol} for server {zone.server}")
+            response = send_dns_update(update, zone.server, protocol)
+            if response is None:
                 return
             status_update(output, f'Adding {dns_name} {record_type} {address}', response)
             if status:
@@ -88,12 +95,8 @@ def delete_forward(dns_name: str, address: ip.IPAddress, status: Optional[DNSSta
                 record_type,
                 str(address)
             )
-            if protocol == Protocol.TCP:
-                response = dns.query.tcp(update, zone.server.address, port=zone.server.server_port)
-            elif protocol == Protocol.UDP:
-                response = dns.query.udp(update, zone.server.address, port=zone.server.server_port)
-            else:
-                logger.error(f"Unknown protocol {protocol} for server {zone.server}")
+            response = send_dns_update(update, zone.server, protocol)
+            if response is None:
                 return
             status_update(output, f'Deleting {dns_name} {record_type} {address}', response)
             if status:
@@ -129,12 +132,8 @@ def create_reverse(dns_name: str, address: ip.IPAddress, status: Optional[DNSSta
                 'ptr',
                 dns_name
             )
-            if protocol == Protocol.TCP:
-                response = dns.query.tcp(update, zone.server.address, port=zone.server.server_port)
-            elif protocol == Protocol.UDP:
-                response = dns.query.udp(update, zone.server.address, port=zone.server.server_port)
-            else:
-                logger.error(f"Unknown protocol {protocol} for server {zone.server}")
+            response = send_dns_update(update, zone.server, protocol)
+            if response is None:
                 return
             status_update(output, f'Adding {record_name} PTR {dns_name}', response)
             if status:
@@ -169,12 +168,8 @@ def delete_reverse(dns_name: str, address: ip.IPAddress, status: Optional[DNSSta
                 'ptr',
                 dns_name
             )
-            if protocol == Protocol.TCP:
-                response = dns.query.tcp(update, zone.server.address, port=zone.server.server_port)
-            elif protocol == Protocol.UDP:
-                response = dns.query.udp(update, zone.server.address, port=zone.server.server_port)
-            else:
-                logger.error(f"Unknown protocol {protocol} for server {zone.server}")
+            response = send_dns_update(update, zone.server, protocol)
+            if response is None:
                 return
             status_update(output, f'Deleting {record_name} PTR {dns_name}', response)
             if status:
