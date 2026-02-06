@@ -14,6 +14,7 @@ from netbox_ddns.utils import get_managed_dns_names, normalize_fqdn
 
 from netbox.views.generic import ObjectDeleteView, ObjectEditView, ObjectView, ObjectListView, BulkDeleteView
 
+from django_tables2 import RequestConfig
 from django.views.generic import View
 
 from utilities.views import register_model_view, GetRelatedModelsMixin
@@ -27,8 +28,7 @@ class ManagedDNSNameListView(PermissionRequiredMixin, View):
     def get(self, request):
         rows = get_managed_dns_names(request.user)
         table = ManagedDNSNameTable(rows)
-        if hasattr(table, 'configure'):
-            table.configure(request)
+        RequestConfig(request).configure(table)
 
         return render(
             request,
