@@ -33,11 +33,7 @@ class ManagedDNSNameListView(PermissionRequiredMixin, View):
         return render(
             request,
             'netbox_ddns/managed_dns_names.html',
-            {
-                'table': table,
-                'object_type': 'managed DNS name',
-                'object_type_plural': 'managed DNS names',
-            },
+            {'table': table},
         )
 
 
