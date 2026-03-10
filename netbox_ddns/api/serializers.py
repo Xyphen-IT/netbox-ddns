@@ -20,13 +20,20 @@ class ExtraDNSNameSerializer(NetBoxModelSerializer):
 class ServerSerializer(NetBoxModelSerializer):
     class Meta:
         model = Server
-        fields = ('server', 'server_port', 'tsig_key_name', 'tsig_algorithm', "tsig_key")
+        fields = (
+            "server",
+            "server_port",
+            "tsig_key_name",
+            "tsig_algorithm",
+            "tsig_key",
+            "protocol",
+        )
 
 
 class ZoneSerializer(NetBoxModelSerializer):
     class Meta:
         model = Zone
-        fields = ('name', 'ttl', 'server', 'protocol')
+        fields = ("name", "ttl", "server")
 
 
 class ReverseZoneSerializer(NetBoxModelSerializer):
