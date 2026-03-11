@@ -2,6 +2,7 @@ from django.urls import path, include
 
 from utilities.urls import get_model_urls
 from .views import (
+    CreateRFC2317Delegation,
     ExtraDNSNameCreateView,
     IPAddressDNSNameRecreateView,
     ManagedDNSNameListView,
@@ -30,6 +31,9 @@ urlpatterns = [
     path(route='reverse-zones/<int:pk>/recreate_records/',
          view=UpdateReverseZone.as_view(),
          name='reversezone_recreate_record'),
+    path(route='reverse-zones/<int:pk>/create_rfc2317_delegation/',
+         view=CreateRFC2317Delegation.as_view(),
+         name='reversezone_create_rfc2317_delegation'),
     path(route='ip-addresses/<int:ipaddress_pk>/recreate/',
          view=IPAddressDNSNameRecreateView.as_view(),
          name='ipaddress_dnsname_recreate'),
