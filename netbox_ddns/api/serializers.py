@@ -7,20 +7,21 @@ from ..models import ExtraDNSName, Server, Zone, ReverseZone
 
 class ExtraDNSNameSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_ddns-api:extradnsname-detail'
+        view_name="plugins-api:netbox_ddns-api:extradnsname-detail"
     )
     ip_address = PrimaryKeyRelatedField(queryset=IPAddress.objects.all())
 
     class Meta:
         model = ExtraDNSName
-        fields = ('id', 'ip_address', 'name', 'url')
-        read_only_fields = ('id', 'url')
+        fields = ("id", "ip_address", "name", "url")
+        read_only_fields = ("id", "url")
 
 
 class ServerSerializer(NetBoxModelSerializer):
     class Meta:
         model = Server
         fields = (
+            "id",
             "server",
             "server_port",
             "tsig_key_name",
@@ -28,15 +29,18 @@ class ServerSerializer(NetBoxModelSerializer):
             "tsig_key",
             "protocol",
         )
+        extra_kwargs = {
+            "tsig_key": {"write_only": True},
+        }
 
 
 class ZoneSerializer(NetBoxModelSerializer):
     class Meta:
         model = Zone
-        fields = ("name", "ttl", "server")
+        fields = ("id", "name", "ttl", "server")
 
 
 class ReverseZoneSerializer(NetBoxModelSerializer):
     class Meta:
         model = ReverseZone
-        fields = ('name', 'prefix', 'ttl', 'server')
+        fields = ("name", "prefix", "ttl", "server")

@@ -409,6 +409,7 @@ class ExtraDNSName(NetBoxModel):
     before_save = None
 
     class Meta:
+        ordering = ('name',)
         unique_together = (
             ('ip_address', 'name'),
         )
