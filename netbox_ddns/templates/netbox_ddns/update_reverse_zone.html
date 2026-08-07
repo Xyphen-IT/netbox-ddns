@@ -9,3 +9,15 @@
         </button>
     </form>
 {% endif %}
+{% if perms.netbox_ddns.change_reversezone and object.get_rfc2317_delegation_cnames %}
+    <form method="post" class="inline-block ms-1">
+        {% csrf_token %}
+
+        <button type="submit" name="_edit"
+                formaction="{% url 'plugins:netbox_ddns:reversezone_create_rfc2317_delegation' pk=object.pk %}"
+                class="btn btn-primary"
+                title="Create CNAME records in parent zone for RFC 2317 delegation">
+            <span class="mdi mdi-arrow-decision" aria-hidden="true"></span> Create RFC 2317 delegation
+        </button>
+    </form>
+{% endif %}

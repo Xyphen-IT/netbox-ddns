@@ -5,12 +5,12 @@ from django.utils.translation import gettext as _
 
 from ipam.models import IPAddress
 from ipam.tables import IPAddressTable
-from netbox_ddns.background_tasks import dns_create
+from netbox_ddns.background_tasks import create_rfc2317_delegation, dns_create
 from netbox_ddns.filtersets import ServerFilterSet, ZoneFilterSet, ReverseZoneFilterSet, ExtraDNSNameFilterSet
 from netbox_ddns.forms import ServerForm, ZoneForm, ReverseZoneForm, ExtraDNSNameIPAddressForm, ExtraDNSNameForm
 from netbox_ddns.models import DNSStatus, ExtraDNSName, Server, Zone, ReverseZone
 from netbox_ddns.tables import ManagedDNSNameTable, ServerTable, ZoneTable, ReverseZoneTable, ExtraDNSNameTable
-from netbox_ddns.utils import get_managed_dns_names, normalize_fqdn
+from netbox_ddns.utils import get_managed_dns_names, get_reverse_zone_status, normalize_fqdn
 
 from netbox.views.generic import ObjectDeleteView, ObjectEditView, ObjectView, ObjectListView, BulkDeleteView
 
@@ -47,6 +47,7 @@ class ReverseZoneView(ObjectView):
         ip_address_table.configure(request)
         return {
             'ip_address_table': ip_address_table,
+            'reverse_zone_status': get_reverse_zone_status(instance),
         }
 
 
@@ -303,6 +304,29 @@ class UpdateForwardZone(PermissionRequiredMixin, View):
             )
         )
         return redirect(zone.get_absolute_url())
+
+
+class CreateRFC2317Delegation(PermissionRequiredMixin, View):
+    """Create RFC 2317 CNAME records in the parent zone to delegate to this ReverseZone."""
+    permission_required = 'netbox_ddns.change_reversezone'
+
+    def post(self, request, pk):
+        reversezone = get_object_or_404(ReverseZone, pk=pk)
+        records = reversezone.get_rfc2317_delegation_cnames()
+        if not records:
+            messages.warning(
+                request,
+                _("No RFC 2317 delegation needed: no parent zone, IPv6, or prefix on octet boundary"),
+            )
+        else:
+            create_rfc2317_delegation.delay(pk)
+            messages.success(
+                request,
+                _("Creating RFC 2317 delegation: {count} CNAME records in parent zone").format(
+                    count=len(records)
+                ),
+            )
+        return redirect(reversezone.get_absolute_url())
 
 
 class UpdateReverseZone(PermissionRequiredMixin, View):

@@ -268,6 +268,44 @@ class ReverseZone(NetBoxModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_ddns:reversezone', args=[self.pk])
 
+    def get_parent(self) -> Optional['ReverseZone']:
+        """Return the immediate parent ReverseZone, if any."""
+        parents = list(
+            ReverseZone.objects.filter(prefix__net_contains=self.prefix.ip)
+            .exclude(pk=self.pk)
+        )
+        if not parents:
+            return None
+        parents.sort(key=lambda z: z.prefix.prefixlen, reverse=True)
+        return parents[0]
+
+    def get_rfc2317_delegation_cnames(self, use_hyphen: bool = True) -> list:
+        """
+        Return CNAME records for RFC 2317 delegation in the parent zone.
+        Format: (name_in_parent, target_fqdn) for each address in this block.
+        Uses hyphen instead of slash by default for resolver compatibility.
+        Returns empty list if no parent, not IPv4, or prefix on octet boundary.
+        """
+        parent = self.get_parent()
+        if not parent:
+            return []
+        prefix = IPNetwork(self.prefix)
+        if prefix.version != 4:
+            return []
+        if prefix.prefixlen in (0, 8, 16, 24):
+            return []
+        sep = '-' if use_hyphen else '/'
+        first_octet = prefix.ip.words[-1]
+        parent_name = parent.name.rstrip('.')
+        records = []
+        for addr_int in range(int(prefix.ip), int(prefix.ip) + prefix.size):
+            addr = ip.IPAddress(addr_int)
+            octet = addr.words[-1]
+            name_in_parent = f'{octet}.{parent_name}'
+            target = f'{octet}.{first_octet}{sep}{prefix.prefixlen}.{parent_name}'
+            records.append((name_in_parent, target))
+        return records
+
     def record_name(self, address: ip.IPAddress):
         record_name = self.name
         if IPNetwork(self.prefix).version == 4:
