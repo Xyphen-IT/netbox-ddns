@@ -1,5 +1,5 @@
 import django_tables2 as tables
-from django_tables2 import LinkColumn, RelatedLinkColumn
+from django_tables2 import LinkColumn
 
 from netbox_ddns.models import ExtraDNSName, Server, ReverseZone, Zone
 
@@ -31,7 +31,7 @@ FORWARD_DNS = """
 
 class ReverseZoneTable(NetBoxTable):
     name = LinkColumn()
-    server = RelatedLinkColumn()
+    server = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = ReverseZone
@@ -40,7 +40,7 @@ class ReverseZoneTable(NetBoxTable):
 
 class ZoneTable(NetBoxTable):
     name = LinkColumn()
-    server = RelatedLinkColumn()
+    server = tables.Column(linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = Zone
@@ -56,7 +56,7 @@ class ServerTable(NetBoxTable):
 
 
 class ExtraDNSNameTable(NetBoxTable):
-    ip_address = RelatedLinkColumn()
+    ip_address = tables.Column(linkify=True)
     name = LinkColumn()
     forward_dns = tables.TemplateColumn(template_code=FORWARD_DNS)
 
