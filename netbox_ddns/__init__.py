@@ -1,4 +1,4 @@
-VERSION = '1.7.0'
+VERSION = '1.8.0'
 
 try:
     from netbox.plugins import PluginConfig
